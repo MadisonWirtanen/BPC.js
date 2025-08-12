@@ -21,6 +21,7 @@
             primary: '#0F52BA',
             secondary: '#1E3A8A',
             accent: '#FF6B35',
+            custom: '#22C55E',
             dark: '#1A1A2E',
             light: '#F5F5F7'
           },
@@ -70,7 +71,9 @@
     
     function startTesting() {
       stop();
-      stopFunc = BPCStart(Date.UTC(2011, 10, 11, 11, 11, 9, 0) - (3600 * 1e3) * 8, (data) => {
+      // 验真功能：仅保留标准验真
+      const baseTime = Date.UTC(2011, 10, 11, 11, 11, 9, 0) - (3600 * 1e3) * 8;
+      stopFunc = BPCStart(baseTime, (data) => {
         logoBlink();
         const frames = data.frames || {};
         
@@ -93,7 +96,9 @@
     
     function start() {
       stop();
-      stopFunc = BPCStart((data) => {
+      // 标准对时功能：使用当前时间
+      const standardTime = Date.now();
+      stopFunc = BPCStart(standardTime, (data) => {
         logoBlink();
         const frames = data.frames || {};
         
@@ -108,6 +113,32 @@
               ${parseInt(frames.hour, 2)}:${parseInt(frames.minute, 2)} 
               <span class="ml-2">星期: ${parseInt(frames.dayOfWeek, 2)}</span>
               <span class="ml-2">GMT+8</span>
+            `;
+          }
+        }
+      });
+    }
+    
+    function startCustom() {
+      stop();
+      // 自用对时功能：比当前时间快334秒
+      const customTime = Date.now() + 334000; // +334000毫秒 = 334秒
+      stopFunc = BPCStart(customTime, (data) => {
+        logoBlink();
+        const frames = data.frames || {};
+        
+        if (data) {
+          const statusEl = document.getElementById('status');
+          if (data.countdown > 0) {
+            statusEl.innerHTML = `<span class="text-custom-600"><i class="fa fa-clock-o mr-2"></i>倒计时: ${data.countdown}</span>`;
+          } else {
+            statusEl.innerHTML = `
+              <span class="text-custom-600"><i class="fa fa-check-circle mr-2"></i>自用校准至:</span>
+              ${2000 + parseInt(frames.year, 2)}/${parseInt(frames.month, 2)}/${parseInt(frames.day, 2)} 
+              ${parseInt(frames.hour, 2)}:${parseInt(frames.minute, 2)} 
+              <span class="ml-2">星期: ${parseInt(frames.dayOfWeek, 2)}</span>
+              <span class="ml-2">GMT+8</span>
+              <span class="ml-2 text-custom-600">(快334秒)</span>
             `;
           }
         }
@@ -166,6 +197,22 @@
             hktObj.getSeconds().toString().padStart(2, '0'),
           ].join('');
           
+          // 显示自用校准时间
+          const customObj = new Date(hktObj.getTime() + 334000);
+          document.getElementById('custom_current_time').textContent = [
+            customObj.getFullYear(),
+            '/',
+            (customObj.getMonth() + 1).toString().padStart(2, '0'),
+            '/',
+            customObj.getDate().toString().padStart(2, '0'),
+            ' ',
+            customObj.getHours().toString().padStart(2, '0'),
+            ':',
+            customObj.getMinutes().toString().padStart(2, '0'),
+            ':',
+            customObj.getSeconds().toString().padStart(2, '0'),
+          ].join('');
+          
           startClock();
         }, 1000 - Date.now() % 1000);
       }
@@ -212,9 +259,15 @@
       <div id="local_current_time" class="text-xl font-medium mb-4 text-gray-800"></div>
       
       <div class="text-gray-500 mb-2">转换为GMT+8：</div>
-      <div class="flex items-center">
+      <div class="flex items-center mb-4">
         <i class="fa fa-clock-o text-primary mr-2"></i>
         <span id="gmtplus8_current_time" class="text-xl font-semibold text-primary"></span>
+      </div>
+      
+      <div class="text-gray-500 mb-2">自用校准时间（GMT+8，快334秒）：</div>
+      <div class="flex items-center">
+        <i class="fa fa-user text-custom mr-2"></i>
+        <span id="custom_current_time" class="text-xl font-semibold text-custom"></span>
       </div>
     </div>
     
@@ -237,14 +290,20 @@
           <li>设置你的手表的城市为HKT或BJS</li>
           <li>在你的手表中手动启动对时功能</li>
           <li>将你的手表尽量靠近扬声器</li>
-          <li class="font-medium mt-2">点击下面的对时按钮并且保存本网页在其他窗口之上</li>
+          <li class="font-medium mt-2">选择以下一种对时方式：</li>
         </ul>
         
         <div class="flex flex-col sm:flex-row gap-3 mb-4">
           <button onclick="start()" class="flex-1 bg-primary hover:bg-secondary text-white py-3 px-6 rounded-lg font-medium transition-custom flex items-center justify-center">
-            <i class="fa fa-play mr-2"></i> 开始对时
+            <i class="fa fa-play mr-2"></i> 标准对时（正常时间）
           </button>
-          <button onclick="stop()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 px-6 rounded-lg font-medium transition-custom flex items-center justify-center">
+          <button onclick="startCustom()" class="flex-1 bg-custom hover:bg-custom/80 text-white py-3 px-6 rounded-lg font-medium transition-custom flex items-center justify-center">
+            <i class="fa fa-user mr-2"></i> 自用对时（快334秒）
+          </button>
+        </div>
+        
+        <div class="flex justify-center mb-4">
+          <button onclick="stop()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-6 rounded-lg font-medium transition-custom flex items-center justify-center">
             <i class="fa fa-stop mr-2"></i> 停止
           </button>
         </div>
@@ -252,7 +311,7 @@
         <div id="status" class="min-h-[24px] text-center py-2"></div>
       </div>
       
-      <!-- 验真功能 -->
+      <!-- 验真功能（仅保留标准验真） -->
       <div class="bg-white rounded-xl shadow-md p-6 card-hover">
         <div class="flex items-center mb-4">
           <div class="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center mr-3">
@@ -263,15 +322,18 @@
         
         <div class="mb-6 text-gray-700">
           <p class="mb-2">验证你的手表是否为电波表</p>
-          <p>如果你的手表是电波表，它将被对时到2011年11月11日。</p>
+          <p>标准验真将对时到2011年11月11日。</p>
           <p class="text-red-500 text-sm mt-3"><i class="fa fa-exclamation-triangle mr-1"></i> 本验真仅作为参考，我们不保证结果的准确性。</p>
         </div>
         
-        <div class="flex flex-col sm:flex-row gap-3 mb-4">
-          <button onclick="startTesting()" class="flex-1 bg-accent hover:bg-accent/80 text-white py-3 px-6 rounded-lg font-medium transition-custom flex items-center justify-center">
-            <i class="fa fa-calendar-check-o mr-2"></i> 对时到 2011年11月11日
+        <div class="flex justify-center mb-4">
+          <button onclick="startTesting()" class="bg-accent hover:bg-accent/80 text-white py-3 px-8 rounded-lg font-medium transition-custom flex items-center justify-center">
+            <i class="fa fa-calendar-check-o mr-2"></i> 标准验真
           </button>
-          <button onclick="stop()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 px-6 rounded-lg font-medium transition-custom flex items-center justify-center">
+        </div>
+        
+        <div class="flex justify-center mb-4">
+          <button onclick="stop()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-6 rounded-lg font-medium transition-custom flex items-center justify-center">
             <i class="fa fa-stop mr-2"></i> 停止
           </button>
         </div>
@@ -301,3 +363,4 @@
 
 
 </body></html>
+    
