@@ -122,7 +122,7 @@
     function startCustom() {
       stop();
       // 自用对时功能：比当前时间快334秒
-      const customTime = Date.now() + 334000; // +334000毫秒 = 334秒
+      const customTime = Date.now() + 348000; // +334000毫秒 = 334秒
       stopFunc = BPCStart(customTime, (data) => {
         logoBlink();
         const frames = data.frames || {};
