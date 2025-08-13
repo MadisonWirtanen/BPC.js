@@ -1,366 +1,109 @@
-<html lang="zh-CN"><head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  
-  <meta name="description" content="G-XIAKE.com 是一个可以校准你的电波表的网站">
-  <meta name="keywords" content="G-SHOCK,G-XIAKE,CASIO,casio multiband 6">
-  <meta name="author" content="ZenW">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>G-侠客 | g-xiake.com</title>
-  
-  <!-- 引入Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- 引入Font Awesome -->
-  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-  
-  <!-- 自定义配置 -->
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#0F52BA',
-            secondary: '#1E3A8A',
-            accent: '#FF6B35',
-            custom: '#22C55E',
-            dark: '#1A1A2E',
-            light: '#F5F5F7'
-          },
-          fontFamily: {
-            sans: ['Montserrat', 'Arial', 'sans-serif'],
-          },
-        },
-      }
-    }
-  </script>
-  
-  <style type="text/tailwindcss">
-    @layer utilities {
-      .content-auto {
-        content-visibility: auto;
-      }
-      .text-shadow {
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      }
-      .transition-custom {
-        transition: all 0.3s ease;
-      }
-      .card-hover {
-        @apply hover:shadow-lg hover:-translate-y-1 transition-all duration-300;
-      }
-    }
-  </style>
-  
-  <script src="bpc.js" type="text/javascript"></script>
-  <script type="text/javascript">
-    function logoBlink() {
-      const handle = setInterval(() => {
-        const logoDOM = document.getElementById('logo');
-        const currentOpacity = parseFloat(logoDOM.style.opacity) || 0;
-        
-        if (currentOpacity >= 1) {
-          logoDOM.style.opacity = 1;
-          clearInterval(handle);
-          return;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPC 时间校准工具</title>
+    <script src="https://unpkg.com/bpc.js@0.0.2/bpc.js" type="text/javascript"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
         }
-        
-        logoDOM.style.opacity = currentOpacity + 0.05;
-      }, 50);
-    }
-    
-    let stopFunc = null;
-    
-    function startTesting() {
-      stop();
-      // 验真功能：仅保留标准验真
-      const baseTime = Date.UTC(2011, 10, 11, 11, 11, 9, 0) - (3600 * 1e3) * 8;
-      stopFunc = BPCStart(baseTime, (data) => {
-        logoBlink();
-        const frames = data.frames || {};
-        
-        if (data) {
-          const statusEl = document.getElementById('testing_status');
-          if (data.countdown > 0) {
-            statusEl.innerHTML = `<span class="text-blue-600"><i class="fa fa-clock-o mr-2"></i>倒计时: ${data.countdown}</span>`;
-          } else {
-            statusEl.innerHTML = `
-              <span class="text-green-600"><i class="fa fa-check-circle mr-2"></i>校准至:</span>
-              ${2000 + parseInt(frames.year, 2)}/${parseInt(frames.month, 2)}/${parseInt(frames.day, 2)} 
-              ${parseInt(frames.hour, 2)}:${parseInt(frames.minute, 2)} 
-              <span class="ml-2">星期: ${parseInt(frames.dayOfWeek, 2)}</span>
-              <span class="ml-2">GMT+8</span>
-            `;
-          }
+        .container {
+            text-align: center;
         }
-      });
-    }
-    
-    function start() {
-      stop();
-      // 标准对时功能：使用当前时间
-      const standardTime = Date.now();
-      stopFunc = BPCStart(standardTime, (data) => {
-        logoBlink();
-        const frames = data.frames || {};
-        
-        if (data) {
-          const statusEl = document.getElementById('status');
-          if (data.countdown > 0) {
-            statusEl.innerHTML = `<span class="text-blue-600"><i class="fa fa-clock-o mr-2"></i>倒计时: ${data.countdown}</span>`;
-          } else {
-            statusEl.innerHTML = `
-              <span class="text-green-600"><i class="fa fa-check-circle mr-2"></i>校准至:</span>
-              ${2000 + parseInt(frames.year, 2)}/${parseInt(frames.month, 2)}/${parseInt(frames.day, 2)} 
-              ${parseInt(frames.hour, 2)}:${parseInt(frames.minute, 2)} 
-              <span class="ml-2">星期: ${parseInt(frames.dayOfWeek, 2)}</span>
-              <span class="ml-2">GMT+8</span>
-            `;
-          }
+        .input-group {
+            margin: 20px 0;
         }
-      });
-    }
-    
-    function startCustom() {
-      stop();
-      // 自用对时功能：比当前时间快334秒
-      const customTime = Date.now() + 344000; // +334000毫秒 = 334秒
-      stopFunc = BPCStart(customTime, (data) => {
-        logoBlink();
-        const frames = data.frames || {};
-        
-        if (data) {
-          const statusEl = document.getElementById('status');
-          if (data.countdown > 0) {
-            statusEl.innerHTML = `<span class="text-custom-600"><i class="fa fa-clock-o mr-2"></i>倒计时: ${data.countdown}</span>`;
-          } else {
-            statusEl.innerHTML = `
-              <span class="text-custom-600"><i class="fa fa-check-circle mr-2"></i>自用校准至:</span>
-              ${2000 + parseInt(frames.year, 2)}/${parseInt(frames.month, 2)}/${parseInt(frames.day, 2)} 
-              ${parseInt(frames.hour, 2)}:${parseInt(frames.minute, 2)} 
-              <span class="ml-2">星期: ${parseInt(frames.dayOfWeek, 2)}</span>
-              <span class="ml-2">GMT+8</span>
-              <span class="ml-2 text-custom-600">(快334秒)</span>
-            `;
-          }
+        input {
+            padding: 8px;
+            width: 150px;
+            font-size: 16px;
         }
-      });
-    }
-    
-    function stop() {
-      if (stopFunc) stopFunc();
-      document.getElementById('status').innerHTML = '';
-      document.getElementById('testing_status').innerHTML = '';
-    }
-    
-    window.onload = function() {
-      // 检查WebAudio支持
-      if(!window.AudioContext && !window.webkitAudioContext) {
-        alert('为了创建BPC，我们需要您的web浏览器支持WebAudio。\n但是，这个浏览器不支持WebAudio。');
-      }
-
-      // 检测移动设备
-      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-      let isMobileDevice = false;
-      
-      if (/windows phone/i.test(userAgent) || /android/i.test(userAgent)) {
-        isMobileDevice = true;
-      }
-      
-      // iOS检测
-      if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-        isMobileDevice = true;
-      }
-      
-      if (isMobileDevice) {
-        alert('请使用桌面版Chrome 或 Firefox');
-      }
-
-      // 时钟功能
-      function startClock() {
-        setTimeout(() => {
-          const now = new Date();
-          const localOffset = now.getTimezoneOffset() * 60000;
-          const utc = now.getTime() + localOffset;
-          const hktObj = new Date(utc + (3600 * 1e3) * 8);
-          
-          document.getElementById('local_current_time').textContent = now.toString();
-          document.getElementById('gmtplus8_current_time').textContent = [
-            hktObj.getFullYear(),
-            '/',
-            (hktObj.getMonth() + 1).toString().padStart(2, '0'),
-            '/',
-            hktObj.getDate().toString().padStart(2, '0'),
-            ' ',
-            hktObj.getHours().toString().padStart(2, '0'),
-            ':',
-            hktObj.getMinutes().toString().padStart(2, '0'),
-            ':',
-            hktObj.getSeconds().toString().padStart(2, '0'),
-          ].join('');
-          
-          // 显示自用校准时间
-          const customObj = new Date(hktObj.getTime() + 334000);
-          document.getElementById('custom_current_time').textContent = [
-            customObj.getFullYear(),
-            '/',
-            (customObj.getMonth() + 1).toString().padStart(2, '0'),
-            '/',
-            customObj.getDate().toString().padStart(2, '0'),
-            ' ',
-            customObj.getHours().toString().padStart(2, '0'),
-            ':',
-            customObj.getMinutes().toString().padStart(2, '0'),
-            ':',
-            customObj.getSeconds().toString().padStart(2, '0'),
-          ].join('');
-          
-          startClock();
-        }, 1000 - Date.now() % 1000);
-      }
-      
-      startClock();
-      
-      // 添加页面载入动画
-      document.body.classList.add('loaded');
-    };
-  </script>
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .active {
+            display: block;
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+    </style>
 </head>
-<body class="bg-light text-gray-800 font-sans antialiased min-h-screen">
-  <div class="container mx-auto px-4 py-8 max-w-5xl">
-    <!-- 顶部导航 -->
-    <header class="mb-8 text-center">
-      <div class="flex justify-center items-center gap-4 mb-4 text-sm text-gray-600">
-        <a href="https://g-xiake.com/en" class="hover:text-primary transition-custom">English</a>
-        <span>|</span>
-        <a href="https://github.com/MrZenW/BPC.js" target="_blank" class="hover:text-primary transition-custom flex items-center">
-          <i class="fa fa-github mr-1"></i> GitHub
-        </a>
-        <span>|</span>
-        <span>Web BPC</span>
-      </div>
-      
-      <div class="bg-primary/10 border-l-4 border-primary p-4 rounded mb-6">
-        <p class="text-gray-700">G-XIAKE.com 是一个可以校准你的电波表的网站。</p>
-      </div>
-      
-      <!-- MacBook提示 -->
-      <div class="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded-lg text-sm mb-6 inline-block">
-        对于2016年及以后型号（Logo无灯）的MacBook pro，请用3.5毫米的耳机插孔将耳机连接到电脑上，然后将耳机线绕成与手表直径相同的环形。
-      </div>
-    </header>
-    
-    <!-- Logo区域 -->
-    <div id="logo" class="text-center mb-10 opacity-0 transition-all duration-1000">
-      <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/code_assistant/836fe6c604214b31b1e027afac857bcb~tplv-a9rns2rl98-image.image?rcl=2025081216231190E4D89FBE4FB28E7445&amp;rk3s=8e244e95&amp;rrcfp=e75484ac&amp;x-expires=1755591792&amp;x-signature=o20I7%2FyBRhCR2Whr3nA7XP%2BooYk%3D" alt="G-侠客" class="mx-auto max-w-[300px] shadow-md rounded-lg">
+<body>
+    <div class="container">
+        <h1>BPC 时间校准工具</h1>
+        <div class="input-group">
+            <label for="offset">时间差（秒）：</label>
+            <input type="number" id="offset" placeholder="例如：334" required>
+            <p>说明：输入正数表示比标准时间快，负数表示慢</p>
+        </div>
+        <button onclick="startCalibration()">开始校准</button>
+        <button onclick="stopCalibration()" style="background-color: #f44336;">停止校准</button>
+        <div class="status" id="status"></div>
     </div>
-    
-    <!-- 时间显示区域 -->
-    <div class="bg-white rounded-xl shadow-md p-6 mb-8 card-hover">
-      <div class="text-gray-500 mb-2">你的本地时间：</div>
-      <div id="local_current_time" class="text-xl font-medium mb-4 text-gray-800"></div>
-      
-      <div class="text-gray-500 mb-2">转换为GMT+8：</div>
-      <div class="flex items-center mb-4">
-        <i class="fa fa-clock-o text-primary mr-2"></i>
-        <span id="gmtplus8_current_time" class="text-xl font-semibold text-primary"></span>
-      </div>
-      
-      <div class="text-gray-500 mb-2">自用校准时间（GMT+8，快334秒）：</div>
-      <div class="flex items-center">
-        <i class="fa fa-user text-custom mr-2"></i>
-        <span id="custom_current_time" class="text-xl font-semibold text-custom"></span>
-      </div>
-    </div>
-    
-    <hr class="border-gray-300 my-8">
-    
-    <!-- 主要功能区 -->
-    <div class="grid md:grid-cols-2 gap-8">
-      <!-- 对时功能 -->
-      <div class="bg-white rounded-xl shadow-md p-6 card-hover">
-        <div class="flex items-center mb-4">
-          <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mr-3">
-            <i class="fa fa-refresh text-primary text-xl"></i>
-          </div>
-          <h3 class="text-xl font-bold text-gray-800">对时</h3>
-        </div>
-        
-        <ul class="list-decimal list-inside space-y-2 mb-6 text-gray-700">
-          <li>关闭所有其他音源软件在你的电脑中</li>
-          <li>取消静音并且将你电脑的扬声器的音量开大</li>
-          <li>设置你的手表的城市为HKT或BJS</li>
-          <li>在你的手表中手动启动对时功能</li>
-          <li>将你的手表尽量靠近扬声器</li>
-          <li class="font-medium mt-2">选择以下一种对时方式：</li>
-        </ul>
-        
-        <div class="flex flex-col sm:flex-row gap-3 mb-4">
-          <button onclick="start()" class="flex-1 bg-primary hover:bg-secondary text-white py-3 px-6 rounded-lg font-medium transition-custom flex items-center justify-center">
-            <i class="fa fa-play mr-2"></i> 标准对时（正常时间）
-          </button>
-          <button onclick="startCustom()" class="flex-1 bg-custom hover:bg-custom/80 text-white py-3 px-6 rounded-lg font-medium transition-custom flex items-center justify-center">
-            <i class="fa fa-user mr-2"></i> 自用对时（快334秒）
-          </button>
-        </div>
-        
-        <div class="flex justify-center mb-4">
-          <button onclick="stop()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-6 rounded-lg font-medium transition-custom flex items-center justify-center">
-            <i class="fa fa-stop mr-2"></i> 停止
-          </button>
-        </div>
-        
-        <div id="status" class="min-h-[24px] text-center py-2"></div>
-      </div>
-      
-      <!-- 验真功能（仅保留标准验真） -->
-      <div class="bg-white rounded-xl shadow-md p-6 card-hover">
-        <div class="flex items-center mb-4">
-          <div class="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center mr-3">
-            <i class="fa fa-check-circle text-accent text-xl"></i>
-          </div>
-          <h3 class="text-xl font-bold text-gray-800">验真</h3>
-        </div>
-        
-        <div class="mb-6 text-gray-700">
-          <p class="mb-2">验证你的手表是否为电波表</p>
-          <p>标准验真将对时到2011年11月11日。</p>
-          <p class="text-red-500 text-sm mt-3"><i class="fa fa-exclamation-triangle mr-1"></i> 本验真仅作为参考，我们不保证结果的准确性。</p>
-        </div>
-        
-        <div class="flex justify-center mb-4">
-          <button onclick="startTesting()" class="bg-accent hover:bg-accent/80 text-white py-3 px-8 rounded-lg font-medium transition-custom flex items-center justify-center">
-            <i class="fa fa-calendar-check-o mr-2"></i> 标准验真
-          </button>
-        </div>
-        
-        <div class="flex justify-center mb-4">
-          <button onclick="stop()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-6 rounded-lg font-medium transition-custom flex items-center justify-center">
-            <i class="fa fa-stop mr-2"></i> 停止
-          </button>
-        </div>
-        
-        <div id="testing_status" class="min-h-[24px] text-center py-2"></div>
-      </div>
-    </div>
-    
-    <!-- 页脚 -->
-    <footer class="mt-12 pt-6 border-t border-gray-300 text-center text-gray-600">
-      <a href="https://mrzenw.com/" class="hover:text-primary transition-custom flex items-center justify-center">
-        <i class="fa fa-user mr-1"></i> MrZenW
-      </a>
-      <p class="text-sm mt-2 text-gray-500">© 2023 G-侠客. 保留所有权利。</p>
-    </footer>
-  </div>
-  
-  <!-- 页面载入动画脚本 -->
-  <script>
-    // 页面加载完成后显示logo
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        document.getElementById('logo').style.opacity = 1;
-      }, 300);
-    });
-  </script>
 
+    <script type="text/javascript">
+        let calibrationActive = false;
+        const statusElement = document.getElementById('status');
 
-</body></html>
-    
+        // 优化计算逻辑：仅在启动时计算一次时间差，避免重复计算
+        function startCalibration() {
+            const offsetInput = document.getElementById('offset');
+            const offsetSeconds = parseInt(offsetInput.value, 10);
+
+            if (isNaN(offsetSeconds)) {
+                alert('请输入有效的数字');
+                return;
+            }
+
+            // 计算校准后的目标时间（标准时间 + 偏移量）
+            const targetTime = new Date();
+            targetTime.setSeconds(targetTime.getSeconds() + offsetSeconds);
+
+            // 直接使用BPC库核心功能发送校准信号
+            BPCStart(targetTime); // 假设BPC库支持传入目标时间参数
+            calibrationActive = true;
+            updateStatus(`校准中：目标时间偏移 ${offsetSeconds} 秒`);
+        }
+
+        function stopCalibration() {
+            if (calibrationActive) {
+                BPCStop(); // 调用库的停止方法（假设存在）
+                calibrationActive = false;
+                updateStatus('校准已停止', false);
+            }
+        }
+
+        function updateStatus(message, isActive = true) {
+            statusElement.textContent = message;
+            statusElement.className = isActive ? 'status active' : 'status';
+        }
+
+        // 防止页面卸载时仍在运行
+        window.addEventListener('beforeunload', () => {
+            if (calibrationActive) {
+                BPCStop();
+            }
+        });
+    </script>
+</body>
+</html>
