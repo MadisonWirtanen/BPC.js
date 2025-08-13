@@ -1,109 +1,500 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BPC 时间校准工具</title>
-    <script src="https://unpkg.com/bpc.js@0.0.2/bpc.js" type="text/javascript"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 20px;
+    <title>BPC 精确时间校准工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        success: '#52C41A',
+                        warning: '#FAAD14',
+                        danger: '#FF4D4F',
+                        dark: '#1F2329',
+                        'dark-light': '#4E5969',
+                        light: '#F2F3F5'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
         }
-        .container {
-            text-align: center;
-        }
-        .input-group {
-            margin: 20px 0;
-        }
-        input {
-            padding: 8px;
-            width: 150px;
-            font-size: 16px;
-        }
-        button {
-            padding: 8px 16px;
-            font-size: 16px;
-            cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        .status {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 4px;
-            display: none;
-        }
-        .active {
-            display: block;
-            background-color: #e8f5e9;
-            color: #2e7d32;
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .card-shadow {
+                box-shadow: 0 10px 30px -5px rgba(22, 93, 255, 0.1);
+            }
+            .btn-hover {
+                @apply transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5;
+            }
+            .time-display {
+                letter-spacing: 0.05em;
+            }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>BPC 时间校准工具</h1>
-        <div class="input-group">
-            <label for="offset">时间差（秒）：</label>
-            <input type="number" id="offset" placeholder="例如：334" required>
-            <p>说明：输入正数表示比标准时间快，负数表示慢</p>
+<body class="bg-gray-50 font-inter text-dark min-h-screen flex flex-col">
+    <div class="container mx-auto px-4 py-8 max-w-3xl flex-grow">
+        <!-- 标题区域 -->
+        <div class="text-center mb-8">
+            <h1 class="text-[clamp(1.8rem,5vw,2.5rem)] font-bold text-primary mb-2">
+                <i class="fa fa-clock-o mr-2"></i>BPC 时间校准工具
+            </h1>
+            <p class="text-dark-light text-lg">精确控制时间偏移，保持20秒帧间隔</p>
         </div>
-        <button onclick="startCalibration()">开始校准</button>
-        <button onclick="stopCalibration()" style="background-color: #f44336;">停止校准</button>
-        <div class="status" id="status"></div>
+
+        <!-- 主卡片 -->
+        <div class="bg-white rounded-2xl p-6 md:p-8 card-shadow mb-8">
+            <!-- 时间显示区域 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-light rounded-xl p-5">
+                    <h3 class="text-dark-light font-medium mb-2 flex items-center">
+                        <i class="fa fa-globe text-primary mr-2"></i>当前标准时间
+                    </h3>
+                    <div class="time-display text-2xl md:text-3xl font-mono font-semibold" id="current-time">
+                        --:--:--.---
+                    </div>
+                    <div class="text-dark-light text-sm mt-1" id="current-date">
+                        ----年--月--日 星期-
+                    </div>
+                </div>
+                
+                <div class="bg-primary/5 rounded-xl p-5 border border-primary/20">
+                    <h3 class="text-primary font-medium mb-2 flex items-center">
+                        <i class="fa fa-bullseye mr-2"></i>校准目标时间
+                    </h3>
+                    <div class="time-display text-2xl md:text-3xl font-mono font-semibold text-primary" id="target-time">
+                        --:--:--.---
+                    </div>
+                    <div class="text-dark-light text-sm mt-1" id="target-date">
+                        ----年--月--日 星期-
+                    </div>
+                </div>
+            </div>
+
+            <!-- 偏移设置区域 -->
+            <div class="mb-8">
+                <label for="offset" class="block text-dark-light font-medium mb-3">校准偏移量（秒）</label>
+                <div class="flex flex-col sm:flex-row gap-4 items-center">
+                    <div class="relative flex-grow max-w-md">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-dark-light">
+                            <i class="fa fa-arrows-h"></i>
+                        </span>
+                        <input 
+                            type="number" 
+                            id="offset" 
+                            placeholder="例如：334" 
+                            required
+                            class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                        >
+                    </div>
+                    <div class="text-dark-light bg-light px-4 py-3 rounded-lg">
+                        <span id="offset-info">当前偏移：0 秒</span>
+                    </div>
+                </div>
+                <p class="text-xs text-dark-light mt-2">
+                    <i class="fa fa-info-circle mr-1"></i>正数表示比标准时间快，负数表示比标准时间慢
+                </p>
+            </div>
+
+            <!-- 控制按钮 -->
+            <div class="flex flex-wrap justify-center gap-4 mb-6">
+                <button 
+                    id="start-btn"
+                    onclick="startCalibration()"
+                    class="bg-success text-white px-8 py-3 rounded-lg font-medium btn-hover flex items-center"
+                >
+                    <i class="fa fa-play mr-2"></i>开始校准
+                </button>
+                <button 
+                    id="stop-btn"
+                    onclick="stopCalibration()"
+                    class="bg-danger text-white px-8 py-3 rounded-lg font-medium btn-hover flex items-center"
+                    disabled
+                >
+                    <i class="fa fa-stop mr-2"></i>停止校准
+                </button>
+            </div>
+
+            <!-- 校准状态 -->
+            <div id="status" class="hidden bg-success/10 border border-success/30 text-success rounded-lg p-4">
+                <div class="flex items-start">
+                    <i class="fa fa-check-circle mt-0.5 mr-3 text-lg"></i>
+                    <div>
+                        <div id="status-message" class="font-medium">校准已启动</div>
+                        <div id="status-details" class="text-sm mt-1">下一帧：20秒后</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 信息卡片 -->
+        <div class="bg-white rounded-2xl p-5 card-shadow text-center text-dark-light text-sm">
+            <p><i class="fa fa-info-circle mr-1"></i>校准过程中请保持页面处于活跃状态，避免浏览器休眠影响精度</p>
+        </div>
     </div>
 
+    <footer class="bg-dark text-white py-4 mt-8">
+        <div class="container mx-auto px-4 text-center text-sm opacity-70">
+            BPC 时间校准工具 &copy; 2023
+        </div>
+    </footer>
+
     <script type="text/javascript">
+        /** 
+         * 保留原始20秒帧周期的BPC.js
+         * 仅修改时间传递逻辑以支持精确偏移
+         */
+        ;
+        'use strict';
+
+        var BPCStart = (function ModuleSpace() {
+            var frequency = (68.5 * 1e3) / 4;
+            
+            function _getUndefined() { return void 0; }
+            function BLANK_FUNCTION() { }
+
+            function gxkSetInterval(cb) {
+                var timeoutHandle = 0;
+                function _process() {
+                    if (timeoutHandle !== false) {
+                        timeoutHandle = setTimeout(_process, 1e3 - Date.now() % 1e3);
+                        cb();
+                    }
+                }
+                _process();
+                return function() {
+                    if (timeoutHandle !== false) {
+                        clearTimeout(timeoutHandle);
+                        timeoutHandle = false;
+                    }
+                };
+            }
+
+            function toQuaternary(n, length) {
+                var r = Number(n).toString(4);
+                if (r.length < length) {
+                    for (var i = r.length; i < length; i += 1) {
+                        r = '0' + r;
+                    }
+                }
+                return r;
+            }
+
+            function toBinary(n, length) {
+                var r = Number(n).toString(2);
+                if (r.length < length) {
+                    for (var i = r.length; i < length; i += 1) {
+                        r = '0' + r;
+                    }
+                }
+                return r;
+            }
+
+            function getCheckCodeP3(frame) {
+                var binary = '';
+                binary += frame.P1;
+                binary += frame.P2;
+                binary += frame.hour;
+                binary += frame.minute;
+                binary += frame.dayOfWeek;
+                return binary.split('').filter(function(item) {
+                    return '' + item === '1';
+                }).length % 2;
+            }
+
+            function getCheckCodeP4(frame) {
+                var binary = '';
+                binary += frame.day;
+                binary += frame.month;
+                binary += frame.year;
+                return binary.split('').filter(function(item) {
+                    return '' + item === '1';
+                }).length % 2;
+            }
+
+            // 保留原始20秒帧周期处理
+            function generateDateInfo(time) {
+                time = time || Date.now();
+                var localTime = new Date(time);
+                var localOffset = localTime.getTimezoneOffset() * 60000;
+                var utc = time + localOffset;
+
+                var dateObj = new Date(utc + ((3600 * 1e3) * 8));
+                var h24 = dateObj.getHours();
+                var isAM = h24 < 12;
+                var h12 = h24 % 12;
+                var dayOfWeek = dateObj.getDay();
+                if (dayOfWeek === 0) dayOfWeek = 7;
+
+                var frame1 = {
+                    // 保留20秒周期处理（原始逻辑）
+                    P1: toBinary((parseInt(dateObj.getSeconds() / 20, 10)), 2),
+                    P2: '00',
+                    hour: toBinary(h12, 4),
+                    minute: toBinary(dateObj.getMinutes(), 6),
+                    dayOfWeek: toBinary(dayOfWeek, 4),
+
+                    day: toBinary(dateObj.getDate(), 6),
+                    month: toBinary(dateObj.getMonth() + 1, 4),
+                    year: toBinary((dateObj.getFullYear() + '').slice(2), 6),
+                };
+                frame1.P3 = (isAM ? '0' : '1') + '' + getCheckCodeP3(frame1);
+                frame1.P4 = '0' + getCheckCodeP4(frame1);
+                return frame1;
+            }
+
+            function dateInfoTo4String(frames) {
+                return [
+                    toQuaternary(parseInt(frames.P1, 2), 1),
+                    toQuaternary(parseInt(frames.P2, 2), 1),
+                    toQuaternary(parseInt(frames.hour, 2), 2),
+                    toQuaternary(parseInt(frames.minute, 2), 3),
+                    toQuaternary(parseInt(frames.dayOfWeek, 2), 2),
+                    toQuaternary(parseInt(frames.P3, 2), 1),
+                    toQuaternary(parseInt(frames.day, 2), 3),
+                    toQuaternary(parseInt(frames.month, 2), 2),
+                    toQuaternary(parseInt(frames.year, 2), 3),
+                    toQuaternary(parseInt(frames.P4, 2), 1),
+                ].join('');
+            }
+
+            function dateInfoStringToSoundCode(dateString) {
+                return dateString.split('').map(function(one) {
+                    if (one === '0') return 0.1;
+                    if (one === '1') return 0.2;
+                    if (one === '2') return 0.3;
+                    if (one === '3') return 0.4;
+                    return 0;
+                });
+            }
+
+            var oscillator = null;
+            function reinitAudio() {
+                var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                oscillator = audioCtx.createOscillator();
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+                oscillator.connect(audioCtx.destination);
+            }
+
+            function startAudioIfNeeded() {
+                if (oscillator) return;
+                var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                oscillator = audioCtx.createOscillator();
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+                oscillator.connect(audioCtx.destination);
+                oscillator.start();
+            }
+
+            var stopFunction = null;
+            var isRunning = false;
+
+            // 保留20秒帧生成周期
+            function BPCStart(utctime, cb) {
+                if (true === isRunning) {
+                    return stopFunction;
+                }
+                isRunning = true;
+                if ('function' === typeof utctime) {
+                    cb = utctime;
+                    utctime = null;
+                }
+                utctime = utctime || Date.now();
+                // 关键：保存精确的时间偏移量
+                var timeDifference = utctime - Date.now();
+                cb = cb || BLANK_FUNCTION;
+                var frames = null;
+                var framesSoundCode = [];
+                
+                var intervalHandleStopFunction = gxkSetInterval(function() {
+                    startAudioIfNeeded();
+                    var soundSecond = framesSoundCode.shift();
+                    if (soundSecond === _getUndefined()) {
+                        var currentTime = Date.now() + timeDifference; // 应用偏移
+                        var second = (new Date(currentTime)).getSeconds();
+                        var modeOfSecond = second % 20;
+                        
+                        // 保持20秒帧周期，但基于偏移后的时间计算
+                        if (modeOfSecond === 0) {
+                            frames = generateDateInfo(currentTime);
+                            var framesString = dateInfoTo4String(frames);
+                            framesSoundCode = dateInfoStringToSoundCode(framesString);
+                            cb({
+                                frames: frames,
+                                countdown: 0,
+                                currentTime: new Date(currentTime)
+                            });
+                        } else {
+                            oscillator.stop(0.1);
+                            oscillator = null;
+                            cb({
+                                frames: frames,
+                                countdown: 20 - modeOfSecond,
+                                currentTime: new Date(currentTime)
+                            });
+                        }
+                    } else {
+                        oscillator.stop();
+                        reinitAudio();
+                        setTimeout(function() {
+                            oscillator.start();
+                        }, soundSecond * 1e3);
+                        cb({
+                            frames: frames,
+                            countdown: 0,
+                            soundSecond: soundSecond
+                        });
+                    }
+                });
+
+                stopFunction = function () {
+                    isRunning = false;
+                    intervalHandleStopFunction();
+                    setTimeout(function() {
+                        try {
+                            oscillator.stop();
+                        } catch (error) { /* 忽略停止错误 */ }
+                    }, 1 * 1e3);
+                };
+                return stopFunction;
+            }
+
+            if ('object' === typeof module) module.exports = BPCStart;
+            if ('object' === typeof window) window.BPCStart = BPCStart;
+            return BPCStart;
+        })();
+
+        // 校准控制逻辑
         let calibrationActive = false;
+        let stopCalibrationFunc = null;
+        let offsetSeconds = 0;
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+
+        // DOM元素
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
         const statusElement = document.getElementById('status');
+        const statusMessage = document.getElementById('status-message');
+        const statusDetails = document.getElementById('status-details');
+        const offsetInput = document.getElementById('offset');
+        const offsetInfo = document.getElementById('offset-info');
+        const currentTimeEl = document.getElementById('current-time');
+        const currentDateEl = document.getElementById('current-date');
+        const targetTimeEl = document.getElementById('target-time');
+        const targetDateEl = document.getElementById('target-date');
 
-        // 优化计算逻辑：仅在启动时计算一次时间差，避免重复计算
+        // 更新时间显示
+        function updateTimeDisplays() {
+            const now = new Date();
+            const target = new Date(now.getTime() + (offsetSeconds * 1000));
+            
+            // 格式化当前时间
+            currentTimeEl.textContent = formatTime(now);
+            currentDateEl.textContent = formatDate(now);
+            
+            // 格式化目标时间
+            targetTimeEl.textContent = formatTime(target);
+            targetDateEl.textContent = formatDate(target);
+            
+            // 更新偏移信息
+            offsetInfo.textContent = `当前偏移：${offsetSeconds} 秒`;
+        }
+
+        // 格式化时间（包含毫秒）
+        function formatTime(date) {
+            const hours = padZero(date.getHours());
+            const minutes = padZero(date.getMinutes());
+            const seconds = padZero(date.getSeconds());
+            const milliseconds = padZero(date.getMilliseconds(), 3);
+            return `${hours}:${minutes}:${seconds}.${milliseconds}`;
+        }
+
+        // 格式化日期
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = padZero(date.getMonth() + 1);
+            const day = padZero(date.getDate());
+            const weekday = weekdays[date.getDay()];
+            return `${year}年${month}月${day}日 星期${weekday}`;
+        }
+
+        // 补零函数
+        function padZero(num, length = 2) {
+            return num.toString().padStart(length, '0');
+        }
+
+        // 监听偏移输入变化
+        offsetInput.addEventListener('input', function() {
+            const value = parseInt(this.value, 10);
+            offsetSeconds = isNaN(value) ? 0 : value;
+            updateTimeDisplays();
+        });
+
+        // 开始校准
         function startCalibration() {
-            const offsetInput = document.getElementById('offset');
-            const offsetSeconds = parseInt(offsetInput.value, 10);
-
-            if (isNaN(offsetSeconds)) {
+            const inputValue = parseInt(offsetInput.value, 10);
+            
+            if (isNaN(inputValue)) {
                 alert('请输入有效的数字');
                 return;
             }
-
-            // 计算校准后的目标时间（标准时间 + 偏移量）
-            const targetTime = new Date();
-            targetTime.setSeconds(targetTime.getSeconds() + offsetSeconds);
-
-            // 直接使用BPC库核心功能发送校准信号
-            BPCStart(targetTime); // 假设BPC库支持传入目标时间参数
+            
+            offsetSeconds = inputValue;
+            const targetTime = Date.now() + (offsetSeconds * 1000);
+            
+            // 更新按钮状态
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            
+            // 启动校准
+            stopCalibrationFunc = BPCStart(targetTime, (status) => {
+                const timeStr = status.currentTime ? formatTime(status.currentTime) : '';
+                statusMessage.textContent = `校准中：偏移 ${offsetSeconds} 秒`;
+                statusDetails.textContent = `下一帧：${status.countdown}秒后 | 目标时间：${timeStr}`;
+                statusElement.classList.remove('hidden');
+            });
+            
             calibrationActive = true;
-            updateStatus(`校准中：目标时间偏移 ${offsetSeconds} 秒`);
+            statusMessage.textContent = `校准已启动，目标偏移：${offsetSeconds}秒`;
+            statusElement.classList.remove('hidden');
         }
 
+        // 停止校准
         function stopCalibration() {
-            if (calibrationActive) {
-                BPCStop(); // 调用库的停止方法（假设存在）
+            if (calibrationActive && stopCalibrationFunc) {
+                stopCalibrationFunc();
                 calibrationActive = false;
-                updateStatus('校准已停止', false);
+                
+                // 更新按钮状态
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                
+                statusMessage.textContent = '校准已停止';
+                statusDetails.textContent = '';
             }
         }
 
-        function updateStatus(message, isActive = true) {
-            statusElement.textContent = message;
-            statusElement.className = isActive ? 'status active' : 'status';
-        }
+        // 每秒更新时间显示
+        setInterval(updateTimeDisplays, 10);
+        
+        // 初始化显示
+        updateTimeDisplays();
 
-        // 防止页面卸载时仍在运行
+        // 页面关闭时自动停止校准
         window.addEventListener('beforeunload', () => {
-            if (calibrationActive) {
-                BPCStop();
-            }
+            stopCalibration();
         });
     </script>
 </body>
 </html>
+    
